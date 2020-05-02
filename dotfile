@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# dotfile 1.0 
+# dotfile 1.3.5
 #
 # Copyright (C) 2019 Angel. uGeek
 # ugeekpodcast@gmail.com
@@ -24,60 +24,334 @@
 
 
 
-if [ $1 = "-h" ]
+
+CONFIG=~/.zshrc
+
+
+if [ "$1" = "-h" ] || [ "$1" = "--help" ] || [ "$1" = "" ]
 then
 echo "
 Modo de empleo: dotfile [nombre_del_archivo] [categoría]
-
-ejem:  dotfile init.el emacs
-
+ejem:  dotfile init.el trabajo/emacs
 Enviará el archivo init.el a la carpeta emacs dentro de la carpeta ~/dotfile.
 Además, creará un archivo init.el.sh, para reconstruir el archivo.
-
-
-
+OPCIÓN           SIGNIFICADO
+-c               Exportar cron
+-a               Exportar alias
+-o               Generar .org de todos los archivos
+-s               Enviar llave SSH
+-sf              Crear archivo de configuración, para abreviar la conexión
+-se              Eliminar acceso a máquina por SSH                                                           
+-sa              Añadir acceso por SSH         
+-af              Crear archivo de alias dotfiles
+-aa              Añadir alias al archivo dotfiles
+-i               Instalar dotfile
+-r               Reconstruir una configuración. 
+-ra              Reconstruir todos los archivos de una máquina 
+-l               listar archivos
+-is              Notificación Inicio de sesión
 dotfile -c <NOMBRE DEL PC>
-dotfile -b [RUTA DEL ARCHIVO dotfile.org] 
-dotfile -b $PWD -> backup en orgmode
-
+dotfile -a <NOMBRE DEL PC>                   
+dotfile -ar [ARCHIVO]
+dotfile -aa               -> Introducir la ruta de una archivo txt con alias
+dotfile -o ~/dotfile/     -> Crea un orgmode de todos los archivos en la ruta  ~/dotfile/
+dotfile -r       -> Situate en el directorio y ejecuta el comando
 Backup de cron:
-
 dotfile -c <NOMBRE DEL PC>
-
 Nos guardará en la carpeta con el nombre del pc, el archivo con su fecha.
-
 Para restaurar un cron:
-
 ejem: crontab [ARCHIVO RESTAURACIÓN CRON]
-
+v 1.3.2 14/12/2019
 "
 
-else  
-if [ $1 = "-c" ]
+exit
+fi
+
+
+    
+    
+if [ "$1" = "-is" ]
+   then
+   echo "Escribe bash, zsh,... en función del archivo que utilices"
+   read ARCHIVO
+   echo "Introduce el Bot de Notificación a inicio del Sistema"
+   read BOT
+   echo $BOT >> /etc/"$ARCHIVO"/"$ARCHIVO"rc   
+exit
+fi
+
+if [ "$1" = "-i" ]; then
+if [ "$(whoami)" != "root" ]; then
+    echo "Tienes que ejecutar dotfile como root. (sudo)"
+    echo "Ejemplo: "
+    echo ""
+    echo "sudo ./dotfile -i"
+    echo ""
+    echo ""
+    sudo apt install rename
+    exit
+fi
+    cp dotfile /usr/bin/dotfile
+    chmod +x /usr/bin/dotfile
+
+    exit
+fi
+
+
+    
+
+
+if [ "$1" = "-aa" ]
 then
-mkdir -p ~/dotfile/cron/$2
-crontab -l > ~/dotfile/cron/$2/cron_$(date +"%Y-%m-%d_%T")
-echo " Creada la copia de seguridad de cron con éxito"
-else
+clear
+echo "Si no has creado el dotfile de alias, introduce:  dotfile -af"  
+echo " "
+echo "¿Que nombre de alias quieres añadir?"
+read ALIAS
+echo "¿Que comando ejecutará este alias?"
+read COMANDO
+echo "alias $ALIAS='$COMANDO'" >> ~/.alias
+clear
+echo "Tu alias ha sido creado. Reinicia tu terminal para que tenga efecto el cambio"
+echo ""
+echo "Comando: $ALIAS"
+echo "Acción:  $COMANDO"
+echo ""
+exit
+fi
 
-
-if [ $1 = "-b" ]
+if [ "$1" = "-s" ]
 then
-rm ~/dotfile/dotfile.org
-find $HOME/dotfile/ -type f -not -name dotfile.org  -exec echo "* {}" \; -exec cat {} \; > $2/dotfile.org
-cp ~/dotfile/dotfile.org ~/dotfile/dotfile/$(date +"%Y-%m-%d_%T")_dotfile.org
+    
+
+clear
+echo "Tienes llave Pública. SI o NO"
+read RESPUESTA
+
+
+
+if [ $RESPUESTA = "NO" ] ; then
+     echo "Generando LLave Pública"
+     ssh-keygen -t rsa
 else
+     echo "Como tienes Llave Publica,"
+fi
+
+echo "Introduce el Usuario e IP. Ejem: usuario@192.168.1.100"
+read RUTA
+ssh-copy-id -i ~/.ssh/id_rsa.pub $RUTA
+exit
+fi
+
+    
+if [ "$1" = "-sf" ]
+then
+echo "Nombre que utilizaremos para conectarnos"
+read NOMBRE
+echo "Escribe la IP"
+read IP
+echo "Escribe el usuario del servidor remoto"
+read USUARIO
+echo "Puerto del servidor remoto"
+read PUERTO
+    
+echo "
+Host $NOMBRE
+    Hostname $IP
+    IdentityFile ~/.ssh/id_rsa
+    IdentitiesOnly yes
+    User $USUARIO
+    Port $PUERTO
+" >> ~/.ssh/config
+
+exit
+fi
+    
+    
+
+if [ "$1" = "-sa" ]
+then
+   cp  ~/.ssh/authorized_keys ~/.ssh/$2 2>/dev/null
+   cat ~/.ssh/akw.$2 ~/.ssh/$2 >  ~/.ssh/authorized_keys 2>/dev/null
+   rm ~/.ssh/$2 ~/.ssh/akw.$2 2>/dev/null
+exit
+fi
 
 
+
+if [ "$1" = "-se" ]
+then
+    cat ~/.ssh/authorized_keys | grep -v $2 > ~/.ssh/ak.$2
+    cat ~/.ssh/authorized_keys | grep $2 >  ~/.ssh/akw.$2
+    mv ~/.ssh/ak.$2 ~/.ssh/authorized_keys
+exit
+fi
+    
+    
+    
+
+if [ "$1" = "-a" ]
+then
+    echo "Introduce el nombre del PC"
+    read PC
+    mkdir -p ~/dotfile/$PC/alias/$2/
+    grep "^alias" $CONFIG > ~/dotfile/$PC/alias/$2/alias_$(date +"%Y-%m-%d_%T")
+    echo " "
+    echo " "
+    echo "alias  guardados"
+    echo " "
+    cat ~/dotfile/$PC/alias/$2/alias_$(date +"%Y-%m-%d_%T")
+    echo " "
+    echo " "
+exit
+fi
+    
+
+
+
+if [ "$1" = "-af" ]
+then
+echo "¿Que utilizas?, bash o zsh..."
+echo "Escribe el nombre del archivo de configuración. Ejemplo:"
+echo ".bashrc"
+
+read CONFIG
+
+
+echo "
+if [ -f ~/.alias ]; then
+. ~/.alias 
+fi
+" >> ~/$CONFIG
+
+if [ -f ~/.alias ]; then
+. ~/.alias 
+else
+echo "#### Alias ####" >> ~/.alias    
+fi
+exit
+fi
+
+
+if [ "$1" = "-c" ]
+then
+    echo "Introduce el nombre del PC"
+    read PC
+    mkdir -p ~/dotfile/$PC/cron/$2
+    crontab -l > ~/dotfile/$PC/cron/$2/cron_$(date +"%Y-%m-%d_%T")
+    echo " Creada la copia de seguridad de cron con éxito"
+exit
+fi
+
+
+    
+
+if [ "$1" = "-o" ]
+then
+    clear
+    echo "Listado de carpetas en dotfile"
+    echo "------------------------------"
+    ls -1 ~/dotfile/
+    echo "------------------------------"
+    echo ""
+    echo "Introduce el nombre del PC"
+    read PC
+    mkdir -p ~/dotfile/$PC/org/
+    rm ~/dotfile/dotfile.org
+    find $HOME/dotfile/ -type f -not -name dotfile.org  -exec echo "* {}" \; -exec cat {} \; > $2/dotfile.org
+    cp ~/dotfile/dotfile.org ~/dotfile/$PC/org/$(date +"%Y-%m-%d_%T")_dotfile.org
+exit
+fi
+
+    
+if [ "$1" = "-r" ]
+then
+    ls $PWD/*.sh -1 > ~/dotfile/.reconstruir
+    ls $PWD/.*.sh -1a  >> ~/dotfile/.reconstruir
+    while read LINEA; do bash $LINEA; done < ~/dotfile/.reconstruir
+exit
+fi
+
+if [ "$1" = "-ra" ]
+then
+    clear
+    echo "Listado de Directorios Disponibles"
+    echo ""
+    echo ""
+    echo ""
+    ls -F ~/dotfile/ | grep '/$'
+    echo ""
+    echo ""
+    echo "Escribe el directorio que quieres reconstruir"
+
+    read DIRECTORIO
+    find ~/dotfile/"$DIRECTORIO" -name "*.sh" -not -path "*backup/*" > ~/dotfile/.reconstruir_maquina
+    cat ~/dotfile/.reconstruir_maquina
+exit
+fi
+
+    
 # Inicia dotfile
 mkdir -p ~/dotfile/$2
 cp -r $1 ~/dotfile/$2/
+#mkdir -p ~/dotfile/dotfile/log
 
 clear
 
-echo "$1 <---Enviado a--> $2" 
-echo "cp $1 $(pwd | sed "s,^$HOME,~,")" > ~/dotfile/$2/$1.sh
-echo "$2,$1,$(pwd | sed "s,^$HOME,~,")",$(date +"%Y-%m-%d_%T"),$(hostname) >> ~/dotfile/dotfile/log
-fi
-fi
-fi
+
+
+mkdir -p ~/dotfile/$2/backup/$1/
+echo "#!/bin/bash/" > ~/dotfile/$2/$1.sh
+echo "# dotfile backup $(date +"%d/%m/%Y")" >> ~/dotfile/$2/$1.sh
+echo "mkdir -p $(pwd | sed "s,^$HOME,~,")" >> ~/dotfile/$2/$1.sh
+echo "cp $1 $(pwd | sed "s,^$HOME,~,")" >> ~/dotfile/$2/$1.sh
+
+
+echo "#!/bin/bash/" > ~/dotfile/$2/backup/$1/$(date +"%d%m%Y")_$1.sh
+echo "# dotfile backup $(date +"%d/%m/%Y")" >> ~/dotfile/$2/backup/$1/$(date +"%d%m%Y")_$1.sh
+echo "mkdir -p $(pwd | sed "s,^$HOME,~,")" >> ~/dotfile/$2/backup/$1/$(date +"%d%m%Y")_$1.sh
+echo "cp $(date +"%d%m%Y")_$1 $(pwd | sed "s,^$HOME,~,")/$1" >> ~/dotfile/$2/backup/$1/$(date +"%d%m%Y")_$1.sh
+cp -r $1 ~/dotfile/$2/backup/$1/$(date +"%d%m%Y")_$1
+
+
+#echo "cp $1 $(pwd | sed "s,^$HOME,~,")" > ~/dotfile/$2/$(echo $1 | cut -d "." -f2-).sh
+echo "$2,$1,$(pwd | sed "s,^$HOME,~,")",$(date +"%Y-%m-%d_%T"),$(hostname) >> ~/dotfile/.log
+
+#RUTA=$(echo $PWD)
+#FILE=$(echo "$1" | sed s'|\.*||'g)
+#cd ~/dotfile/$2/ ; rm $FILE.sh
+#cd ~/dotfile/$2/ ; find . -iname ".*.sh" -exec realpath {} \; | rename 's/\.(.*)/$1/'
+#cd ~/dotfile/$2/backup/ ; find . -iname "$1" -exec realpath {} \; | rename 's/\.(.*)/$1/'
+#cd $RUTA
+
+
+clear
+
+echo ""
+echo "----------------------- dotfile -----------------------"
+echo "$1 --> Enviado a --> ~/dotfile/$2"
+echo "-------------------------------------------------------"
+echo " "
+echo "Listando archivos ..." 
+
+ls -1 -a ~/dotfile/$2/
+
+echo "* Scripts para poder reconstruir tus dotfiles" > ~/dotfile/$2/README.org
+echo "# dotfile backup $(date +"%d/%m/%Y")" >> ~/dotfile/$2/README.org
+ls -1a ~/dotfile/$2/ | grep "sh$" >> ~/dotfile/$2/README.org
+
+
+#sed -i pwd | sed "s,^$HOME,~," ~/dotfile/$2/README.org
+
+
+
+
+#ls -1aR ~/dotfile/$2/ | sed "s;^;`pwd`;" | grep "h$" >> ~/dotfile/$2/README.org
+
+#cd  ~/dotfile/$2/
+#for i in *; do echo $PWD/`ls $i`; done | grep "sh$" >> ~/dotfile/$2/rebuild_dotfile.sh  
+
+#sed -i 's/rebuild_dotfile.sh//g' ~/dotfile/$2/rebuild_dotfile.sh
+
+
+
